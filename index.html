@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>萤石利润计算器</title>
+<style>
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f0f2f5;
+  --card: #fff;
+  --primary: #2563eb;
+  --primary-light: #eff6ff;
+  --profit: #16a34a;
+  --profit-bg: #f0fdf4;
+  --loss: #dc2626;
+  --loss-bg: #fef2f2;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --input-bg: #f8fafc;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ===== Header ===== */
+.header {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+  color: #fff;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+.header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+.header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.tax-toggle {
+  display: flex;
+  background: rgba(255,255,255,.15);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.tax-toggle button {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,.7);
+  font-size: .85rem;
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.tax-toggle button.active {
+  background: #fff;
+  color: #1e3a5f;
+  font-weight: 600;
+}
+
+.tax-rate-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,.85);
+  font-size: .85rem;
+}
+.tax-rate-group input {
+  width: 56px;
+  padding: 5px 8px;
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: 6px;
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  text-align: center;
+  font-size: .85rem;
+  font-family: inherit;
+}
+.tax-rate-group input:focus { outline: none; border-color: #fff; background: rgba(255,255,255,.2); }
+
+/* ===== Layout ===== */
+.app-container {
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+  gap: 16px;
+  min-height: calc(100vh - 130px);
+}
+
+/* ===== Sidebar Tabs ===== */
+.sidebar {
+  width: 150px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tab-btn {
+  padding: 12px 16px;
+  border: none;
+  background: var(--card);
+  border-radius: var(--radius);
+  text-align: left;
+  font-size: .95rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  box-shadow: var(--shadow);
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(37,99,235,.3);
+}
+.tab-icon { font-size: 1.2rem; }
+
+/* ===== Main Content ===== */
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+.module { display: none; }
+.module.active { display: block; }
+
+/* ===== Cards ===== */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title .icon { font-size: 1.1rem; }
+
+/* ===== Form Grid ===== */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label {
+  font-size: .8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.form-group input, .form-group select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: .9rem;
+  font-family: inherit;
+  background: var(--input-bg);
+  transition: border-color .2s;
+  width: 100%;
+}
+.form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+}
+.form-group input[readonly] {
+  background: #f1f5f9;
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/* ===== Product Rows (Processing) ===== */
+.product-rows { display: flex; flex-direction: column; gap: 8px; }
+.product-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 100px 120px 40px;
+  gap: 8px;
+  align-items: end;
+}
+.product-row .form-group { margin-bottom: 0; }
+.btn-icon {
+  width: 34px; height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s;
+  color: var(--text-muted);
+}
+.btn-icon:hover { border-color: var(--primary); color: var(--primary); }
+.btn-icon.del:hover { border-color: var(--loss); color: var(--loss); }
+
+.btn-add {
+  padding: 8px 16px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: .85rem;
+  font-family: inherit;
+  transition: all .15s;
+  margin-top: 4px;
+  align-self: flex-start;
+}
+.btn-add:hover { border-color: var(--primary); background: var(--primary-light); }
+
+.yield-warning { color: var(--loss); font-size: .78rem; margin-top: 4px; }
+
+.price-mode-btn { transition: all .15s; }
+
+/* ===== Cost Items (Trading) ===== */
+.cost-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+/* ===== Results Section ===== */
+.results { margin-top: 0; }
+
+.profit-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.profit-card {
+  padding: 18px;
+  border-radius: var(--radius);
+  text-align: center;
+}
+.profit-card.positive { background: var(--profit-bg); border: 1px solid #bbf7d0; }
+.profit-card.negative { background: var(--loss-bg); border: 1px solid #fecaca; }
+.profit-card .label {
+  font-size: .8rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.profit-card .value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.profit-card.positive .value { color: var(--profit); }
+.profit-card.negative .value { color: var(--loss); }
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.detail-item {
+  padding: 10px 12px;
+  background: var(--input-bg);
+  border-radius: 6px;
+}
+.detail-item .dl { font-size: .75rem; color: var(--text-muted); }
+.detail-item .dv { font-size: 1rem; font-weight: 700; margin-top: 2px; }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .app-container { flex-direction: column; }
+  .sidebar { width: 100%; flex-direction: row; overflow-x: auto; }
+  .tab-btn { white-space: nowrap; flex-shrink: 0; }
+  .product-row { grid-template-columns: 1fr 80px 80px 100px 34px; }
+  .header h1 { font-size: 1.1rem; }
+  .profit-cards { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+  .header { padding: 10px 14px; }
+  .app-container { padding: 10px; }
+  .card { padding: 14px; }
+  .product-row { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .product-row .btn-icon { grid-column: span 2; justify-self: end; }
+  .profit-cards { grid-template-columns: 1fr 1fr; }
+  .profit-card .value { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== Header ===== -->
+<div class="header">
+  <h1>🔷 萤石利润计算器</h1>
+  <div class="header-right">
+    <div class="tax-toggle" id="taxToggle">
+      <button data-mode="incl" class="active">含税</button>
+      <button data-mode="excl">不含税</button>
+    </div>
+    <div class="tax-rate-group">
+      <span>增值税率</span>
+      <input type="number" id="vatRate" value="13" min="0" max="20" step="0.5">
+      <span>%</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== App Container ===== -->
+<div class="app-container">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <button class="tab-btn active" data-module="process">
+      <span class="tab-icon">⚙️</span> 跳汰加工
+    </button>
+    <button class="tab-btn" data-module="trade">
+      <span class="tab-icon">📦</span> 贸易利润
+    </button>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- ==================== MODULE 1: 跳汰加工 ==================== -->
+    <div class="module active" id="module-process">
+      <!-- 原矿采购 -->
+      <div class="card">
+        <div class="card-title"><span class="icon">⛏️</span> 原矿采购</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;padding:8px 12px;background:var(--input-bg);border-radius:8px;">
+          <span style="font-size:.78rem;color:var(--text-muted);font-weight:600;">报价方式</span>
+          <span style="display:flex;gap:2px;background:#fff;border-radius:6px;padding:2px;">
+            <button class="proc-price-mode-btn active" data-procpricemode="ton" style="padding:4px 12px;border:none;border-radius:5px;cursor:pointer;font-size:.78rem;font-family:inherit;background:var(--primary);color:#fff;font-weight:600;">元/吨</button>
+            <button class="proc-price-mode-btn" data-procpricemode="gradeprice" style="padding:4px 12px;border:none;border-radius:5px;cursor:pointer;font-size:.78rem;font-family:inherit;background:transparent;color:var(--text-muted);">元/品位</button>
+          </span>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>采购数量（吨）</label>
+            <input type="number" id="p_raw_qty" value="100" min="0" step="0.1">
+          </div>
+          <div class="form-group">
+            <label>原矿品位 CaF₂（%）</label>
+            <input type="number" id="p_raw_grade" value="35" min="0" max="100" step="0.1">
+          </div>
+          <!-- 元/吨 -->
+          <div class="form-group" id="pGpTon">
+            <label>采购单价（元/吨）</label>
+            <input type="number" id="p_raw_price" value="500" min="0" step="0.01">
+          </div>
+          <!-- 元/品位 -->
+          <div class="form-group" id="pGpRate" style="display:none;">
+            <label>单价（元/品位）</label>
+            <input type="number" id="p_raw_gp_rate" value="15" min="0" step="0.01">
+          </div>
+          <div class="form-group" id="pGpCalc" style="display:none;">
+            <label>折合单价（元/吨）</label>
+            <input type="text" id="p_raw_gp_calc" readonly>
+          </div>
+          <div class="form-group">
+            <label>原矿总成本（元）</label>
+            <input type="text" id="p_raw_cost" readonly value="50,000">
+          </div>
+        </div>
+      </div>
+
+      <!-- 加工参数 -->
+      <div class="card">
+        <div class="card-title"><span class="icon">🔧</span> 加工成本</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>用水费（元/吨原矿）</label>
+            <input type="number" id="p_water_fee" value="15" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>用电费（元/吨原矿）</label>
+            <input type="number" id="p_power_fee" value="50" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>其他费用（元）</label>
+            <input type="number" id="p_other_cost" value="2000" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>吨原矿加工成本（元/吨）</label>
+            <input type="text" id="p_process_per_ton" readonly value="65">
+          </div>
+          <div class="form-group">
+            <label>加工总成本（元）</label>
+            <input type="text" id="p_process_total" readonly value="8,500">
+          </div>
+          <div class="form-group">
+            <label>原矿总成本（元）</label>
+            <input type="text" id="p_raw_cost2" readonly value="50,000">
+          </div>
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label style="color:var(--primary);font-weight:600;">总成本合计（元）</label>
+            <input type="text" id="p_total_cost" readonly value="60,500" style="font-weight:700;font-size:1rem;color:var(--primary);">
+          </div>
+        </div>
+      </div>
+
+      <!-- 产品配置 -->
+      <div class="card">
+        <div class="card-title"><span class="icon">💎</span> 跳汰产出产品</div>
+        <div class="product-rows" id="productRows">
+          <!-- Dynamic rows injected by JS -->
+        </div>
+        <button class="btn-add" id="btnAddProduct">＋ 添加产品</button>
+        <div class="yield-warning" id="yieldWarning"></div>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>产品总产量（吨）</label>
+              <input type="text" id="p_product_total_qty" readonly>
+            </div>
+            <div class="form-group">
+              <label>产品总收入（元）</label>
+              <input type="text" id="p_product_revenue" readonly>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 尾矿 -->
+      <div class="card">
+        <div class="card-title"><span class="icon">🪨</span> 尾矿</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;padding:8px 12px;background:var(--input-bg);border-radius:8px;">
+          <span style="font-size:.78rem;color:var(--text-muted);font-weight:600;">报价方式</span>
+          <span style="display:flex;gap:2px;background:#fff;border-radius:6px;padding:2px;">
+            <button class="tail-price-mode-btn active" data-tailpricemode="ton" style="padding:4px 12px;border:none;border-radius:5px;cursor:pointer;font-size:.78rem;font-family:inherit;background:var(--primary);color:#fff;font-weight:600;">元/吨</button>
+            <button class="tail-price-mode-btn" data-tailpricemode="gradeprice" style="padding:4px 12px;border:none;border-radius:5px;cursor:pointer;font-size:.78rem;font-family:inherit;background:transparent;color:var(--text-muted);">元/品位</button>
+          </span>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>尾矿产率（%）</label>
+            <input type="text" id="p_tail_yield" readonly>
+          </div>
+          <div class="form-group">
+            <label>尾矿产量（吨）</label>
+            <input type="text" id="p_tail_qty" readonly>
+          </div>
+          <div class="form-group">
+            <label>尾矿品位 CaF₂（%）</label>
+            <input type="text" id="p_tail_grade" readonly>
+          </div>
+          <!-- 元/吨 -->
+          <div class="form-group" id="pTailTon">
+            <label>尾矿售价（元/吨）</label>
+            <input type="number" id="p_tail_price" value="0" min="0" step="0.01">
+          </div>
+          <!-- 元/品位 -->
+          <div class="form-group" id="pTailGpRate" style="display:none;">
+            <label>单价（元/品位）</label>
+            <input type="number" id="p_tail_gp_rate" value="5" min="0" step="0.01">
+          </div>
+          <div class="form-group" id="pTailGpCalc" style="display:none;">
+            <label>折合售价（元/吨）</label>
+            <input type="text" id="p_tail_gp_calc" readonly>
+          </div>
+          <div class="form-group">
+            <label>尾矿收入（元）</label>
+            <input type="text" id="p_tail_revenue" readonly>
+          </div>
+        </div>
+      </div>
+
+      <!-- 利润汇总 -->
+      <div class="card results">
+        <div class="card-title"><span class="icon">📊</span> 利润汇总</div>
+        <div class="profit-cards" id="processProfitCards">
+          <!-- Injected by JS -->
+        </div>
+        <div class="detail-grid" id="processDetails">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MODULE 2: 贸易利润 ==================== -->
+    <div class="module" id="module-trade">
+      <!-- 采购 -->
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">🛒</span> 采购信息
+        </div>
+        <!-- 控制栏 -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;padding:8px 12px;background:var(--input-bg);border-radius:8px;">
+          <span style="font-size:.78rem;color:var(--text-muted);font-weight:600;">报价方式</span>
+          <span style="display:flex;gap:2px;background:#fff;border-radius:6px;padding:2px;">
+            <button class="price-mode-btn active" data-pricemode="ton" style="padding:4px 12px;border:none;border-radius:5px;cursor:pointer;font-size:.78rem;font-family:inherit;background:var(--primary);color:#fff;font-weight:600;">元/吨</button>
+            <button class="price-mode-btn" data-pricemode="gradeprice" style="padding:4px 12px;border:none;border-radius:5px;cursor:pointer;font-size:.78rem;font-family:inherit;background:transparent;color:var(--text-muted);">元/品位</button>
+          </span>
+        </div>
+        <!-- 元/品位模式：全局品位单价 -->
+        <div id="gGradeGpRate" style="display:none;margin-bottom:10px;" class="form-grid">
+          <div class="form-group">
+            <label>单价（元/品位）</label>
+            <input type="number" id="t_pur_gp_rate_global" value="30" min="0" step="0.01">
+          </div>
+        </div>
+        <!-- 采购批次 -->
+        <div class="product-rows" id="purchaseGradeRows">
+          <!-- Dynamic rows injected by JS -->
+        </div>
+        <button class="btn-add" id="btnAddPurGrade">＋ 添加采购批次</button>
+        <div style="margin-top:10px;" class="form-grid">
+          <div class="form-group">
+            <label>采购总量（吨）</label>
+            <input type="text" id="t_pur_total_qty" readonly>
+          </div>
+          <div class="form-group">
+            <label>加权平均品位（%）</label>
+            <input type="text" id="t_pur_avg_grade" readonly>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
+          <div class="form-group">
+            <label style="font-weight:600;">采购总成本（元）</label>
+            <input type="text" id="t_pur_total" readonly style="font-weight:700;font-size:1rem;color:var(--primary);">
+          </div>
+        </div>
+      </div>
+
+      <!-- 费用 -->
+      <div class="card">
+        <div class="card-title"><span class="icon">🚚</span> 费用明细</div>
+        <div class="cost-grid">
+          <div class="form-group">
+            <label>运输费（元/吨）</label>
+            <input type="number" id="t_transport" value="50" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>仓储费（元/吨）</label>
+            <input type="number" id="t_storage" value="20" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>报关费（元/吨）</label>
+            <input type="number" id="t_customs" value="0" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>港杂费（元/吨）</label>
+            <input type="number" id="t_port" value="0" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>其他费用（元/吨）</label>
+            <input type="number" id="t_other" value="10" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label style="font-weight:600;">吨费用合计（元/吨）</label>
+            <input type="text" id="t_cost_per_ton" readonly style="font-weight:600;">
+          </div>
+          <div class="form-group" style="grid-column:1/-1;">
+            <label style="font-weight:600;color:var(--primary);">费用总计（元）= 吨费用 × 采购数量</label>
+            <input type="text" id="t_cost_total" readonly style="font-weight:700;font-size:1rem;color:var(--primary);">
+          </div>
+        </div>
+      </div>
+
+      <!-- 销售 -->
+      <div class="card">
+        <div class="card-title"><span class="icon">💰</span> 销售信息</div>
+
+        <!-- 内销 -->
+        <div style="margin-bottom:14px;">
+          <div style="font-weight:600;font-size:.85rem;color:var(--text);margin-bottom:8px;">🇨🇳 内销</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>内销数量（吨）</label>
+              <input type="number" id="t_dom_qty" value="60" min="0" step="0.1">
+            </div>
+            <div class="form-group">
+              <label>内销单价（元/吨）</label>
+              <input type="number" id="t_dom_price" value="3200" min="0" step="0.01">
+            </div>
+            <div class="form-group">
+              <label>内销收入（元）</label>
+              <input type="text" id="t_dom_revenue" readonly>
+            </div>
+          </div>
+        </div>
+
+        <!-- 外销 -->
+        <div style="margin-bottom:4px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+            <span style="font-weight:600;font-size:.85rem;color:var(--text);">🌍 外销</span>
+            <span style="display:flex;gap:2px;background:var(--input-bg);border-radius:6px;padding:2px;">
+              <button class="exp-curr-btn active" data-expcurr="usd" style="padding:3px 10px;border:none;border-radius:5px;cursor:pointer;font-size:.75rem;font-family:inherit;background:var(--primary);color:#fff;font-weight:600;">USD报价</button>
+              <button class="exp-curr-btn" data-expcurr="rmb" style="padding:3px 10px;border:none;border-radius:5px;cursor:pointer;font-size:.75rem;font-family:inherit;background:transparent;color:var(--text-muted);">RMB报价</button>
+            </span>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>外销数量（吨）</label>
+              <input type="number" id="t_exp_qty" value="40" min="0" step="0.1">
+            </div>
+            <div class="form-group" id="gExpUsdPrice">
+              <label>FOB单价（USD/吨）</label>
+              <input type="number" id="t_exp_price_usd" value="420" min="0" step="0.01">
+            </div>
+            <div class="form-group" id="gExpRmbPrice" style="display:none;">
+              <label>FOB单价（元/吨）</label>
+              <input type="number" id="t_exp_price_rmb" value="3045" min="0" step="0.01">
+            </div>
+            <div class="form-group" id="gExpRate">
+              <label>汇率（USD→RMB）</label>
+              <input type="number" id="t_exp_rate" value="7.25" min="0" step="0.0001">
+            </div>
+            <div class="form-group">
+              <label>外销收入（元）</label>
+              <input type="text" id="t_exp_revenue" readonly>
+            </div>
+            <div class="form-group">
+              <label>出口退税率（%）</label>
+              <input type="number" id="t_rebate_rate" value="0" min="0" max="13" step="0.5">
+            </div>
+            <div class="form-group">
+              <label>出口退税（元）</label>
+              <input type="text" id="t_rebate" readonly>
+            </div>
+          </div>
+        </div>
+
+        <div id="qtyWarning" style="color:var(--loss);font-size:.8rem;margin-top:8px;"></div>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
+          <div class="form-grid">
+            <div class="form-group">
+              <label style="font-weight:600;">销售总收入（含退税）（元）</label>
+              <input type="text" id="t_total_revenue" readonly style="font-weight:700;font-size:1rem;color:var(--primary);">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 利润汇总 -->
+      <div class="card results">
+        <div class="card-title"><span class="icon">📊</span> 利润汇总</div>
+        <div class="profit-cards" id="tradeProfitCards">
+          <!-- Injected by JS -->
+        </div>
+        <div class="detail-grid" id="tradeDetails">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app-container -->
+
+<script>
+// ===========================
+//  APP STATE & CALC ENGINE
+// ===========================
+const STATE = {
+  taxMode: 'incl',   // 'incl' | 'excl'
+  vatRate: 0.13,
+  priceMode: 'ton',    // 'ton' | 'gradeprice'
+  purGpRate: 30,       // 元/品位 base rate (trading)
+  expCurr: 'usd',      // 'usd' | 'rmb'
+  procPriceMode: 'ton',   // 'ton' | 'gradeprice' (raw ore)
+  procGpRate: 15,        // 元/品位 base rate (raw ore)
+  tailPriceMode: 'ton',  // 'ton' | 'gradeprice' (tailings)
+  tailGpRate: 5,         // 元/品位 base rate (tailings)
+  // Processing defaults
+  products: [
+    { name: '97酸级粉', yield: 8,  grade: 97, price: 3200 },
+    { name: '95颗粒',   yield: 12, grade: 95, price: 2900 },
+    { name: '90颗粒',   yield: 15, grade: 90, price: 2600 },
+  ],
+  // Purchase grade rows (for trading "按品位计价" mode)
+  purGrades: [
+    { name: '97酸级粉', grade: 97, qty: 30, price: 3200 },
+    { name: '95颗粒',   grade: 95, qty: 40, price: 2850 },
+    { name: '90颗粒',   grade: 90, qty: 30, price: 2450 },
+  ],
+};
+
+// ===== Helpers =====
+const $ = (id) => document.getElementById(id);
+const qs = (sel) => document.querySelector(sel);
+const qsa = (sel) => document.querySelectorAll(sel);
+
+function fmt(n, decimals = 0) {
+  if (n == null || isNaN(n)) return '—';
+  return Number(n).toLocaleString('zh-CN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function fmtMoney(n) {
+  if (n == null || isNaN(n)) return '—';
+  const abs = Math.abs(n);
+  const s = abs.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return n < 0 ? '-' + s : s;
+}
+
+function parseVal(id) {
+  const el = $(id);
+  if (!el) return 0;
+  const v = parseFloat(el.value);
+  return isNaN(v) ? 0 : v;
+}
+
+function setVal(id, val) {
+  const el = $(id);
+  if (!el) return;
+  el.value = val;
+}
+
+function setHtml(id, html) {
+  const el = $(id);
+  if (!el) return;
+  el.innerHTML = html;
+}
+
+// Tax conversion
+function toExcl(inclVal) { return inclVal / (1 + STATE.vatRate); }
+function toIncl(exclVal) { return exclVal * (1 + STATE.vatRate); }
+
+// ===== Data Persistence =====
+const STORAGE_KEY = 'fluorite_calc_state';
+
+function saveState() {
+  const data = {
+    taxMode: STATE.taxMode,
+    vatRate: parseVal('vatRate'),
+    priceMode: STATE.priceMode,
+    purGpRate: STATE.purGpRate,
+    procPriceMode: STATE.procPriceMode,
+    procGpRate: STATE.procGpRate,
+    tailPriceMode: STATE.tailPriceMode,
+    tailGpRate: STATE.tailGpRate,
+    products: STATE.products,
+    purGrades: STATE.purGrades,
+    // Processing inputs
+    p_raw_qty: parseVal('p_raw_qty'),
+    p_raw_price: parseVal('p_raw_price'),
+    p_raw_grade: parseVal('p_raw_grade'),
+    p_raw_gp_rate: parseVal('p_raw_gp_rate'),
+    p_water_fee: parseVal('p_water_fee'),
+    p_power_fee: parseVal('p_power_fee'),
+    p_other_cost: parseVal('p_other_cost'),
+    p_tail_price: parseVal('p_tail_price'),
+    p_tail_gp_rate: parseVal('p_tail_gp_rate'),
+    // Trading inputs
+    t_pur_gp_rate_global: parseVal('t_pur_gp_rate_global'),
+    t_transport: parseVal('t_transport'),
+    t_storage: parseVal('t_storage'),
+    t_customs: parseVal('t_customs'),
+    t_port: parseVal('t_port'),
+    t_other: parseVal('t_other'),
+    t_dom_qty: parseVal('t_dom_qty'),
+    t_dom_price: parseVal('t_dom_price'),
+    t_exp_qty: parseVal('t_exp_qty'),
+    t_exp_price: parseVal('t_exp_price'),
+    t_exp_rate: parseVal('t_exp_rate'),
+    t_rebate_rate: parseVal('t_rebate_rate'),
+    expCurr: STATE.expCurr,
+    t_exp_price_usd: parseVal('t_exp_price_usd'),
+    t_exp_price_rmb: parseVal('t_exp_price_rmb'),
+  };
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    STATE.taxMode = d.taxMode || 'incl';
+    STATE.vatRate = (d.vatRate ?? 13) / 100;
+    STATE.priceMode = d.priceMode || 'ton';
+    STATE.purGpRate = d.purGpRate ?? 30;
+    STATE.procPriceMode = d.procPriceMode || 'ton';
+    STATE.procGpRate = d.procGpRate ?? 15;
+    STATE.tailPriceMode = d.tailPriceMode || 'ton';
+    STATE.tailGpRate = d.tailGpRate ?? 5;
+    if (d.products && Array.isArray(d.products)) STATE.products = d.products;
+    if (d.purGrades && Array.isArray(d.purGrades)) STATE.purGrades = d.purGrades;
+
+    // Restore values
+    $('vatRate').value = d.vatRate ?? 13;
+    if (d.p_raw_qty != null) $('p_raw_qty').value = d.p_raw_qty;
+    if (d.p_raw_price != null) $('p_raw_price').value = d.p_raw_price;
+    if (d.p_raw_grade != null) $('p_raw_grade').value = d.p_raw_grade;
+    if (d.p_raw_gp_rate != null) $('p_raw_gp_rate').value = d.p_raw_gp_rate;
+    if (d.p_water_fee != null) $('p_water_fee').value = d.p_water_fee;
+    if (d.p_power_fee != null) $('p_power_fee').value = d.p_power_fee;
+    if (d.p_other_cost != null) $('p_other_cost').value = d.p_other_cost;
+    if (d.p_tail_price != null) $('p_tail_price').value = d.p_tail_price;
+    if (d.p_tail_gp_rate != null) $('p_tail_gp_rate').value = d.p_tail_gp_rate;
+    if (d.t_pur_gp_rate_global != null) $('t_pur_gp_rate_global').value = d.t_pur_gp_rate_global;
+    if (d.t_transport != null) $('t_transport').value = d.t_transport;
+    if (d.t_storage != null) $('t_storage').value = d.t_storage;
+    if (d.t_customs != null) $('t_customs').value = d.t_customs;
+    if (d.t_port != null) $('t_port').value = d.t_port;
+    if (d.t_other != null) $('t_other').value = d.t_other;
+    if (d.t_dom_qty != null) $('t_dom_qty').value = d.t_dom_qty;
+    if (d.t_dom_price != null) $('t_dom_price').value = d.t_dom_price;
+    if (d.t_exp_qty != null) $('t_exp_qty').value = d.t_exp_qty;
+    if (d.t_exp_price != null) $('t_exp_price').value = d.t_exp_price;
+    if (d.t_exp_rate != null) $('t_exp_rate').value = d.t_exp_rate;
+    if (d.t_rebate_rate != null) $('t_rebate_rate').value = d.t_rebate_rate;
+    STATE.expCurr = d.expCurr || 'usd';
+    if (d.t_exp_price_usd != null) $('t_exp_price_usd').value = d.t_exp_price_usd;
+    if (d.t_exp_price_rmb != null) $('t_exp_price_rmb').value = d.t_exp_price_rmb;
+
+    // Restore tax toggle UI
+    updateTaxToggleUI();
+  } catch(e) {}
+}
+
+// ===== Tab Switching =====
+function switchTab(module) {
+  qsa('.tab-btn').forEach(b => b.classList.remove('active'));
+  qsa('.module').forEach(m => m.classList.remove('active'));
+  $(`module-${module}`).classList.add('active');
+  qs(`[data-module="${module}"]`).classList.add('active');
+}
+
+// ===== Tax Toggle =====
+function updateTaxToggleUI() {
+  qsa('#taxToggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === STATE.taxMode);
+  });
+}
+
+// ===== Processing Price Mode Toggle =====
+function updateProcPriceModeUI() {
+  qsa('.proc-price-mode-btn').forEach(b => {
+    const isActive = b.dataset.procpricemode === STATE.procPriceMode;
+    b.style.background = isActive ? 'var(--primary)' : 'transparent';
+    b.style.color = isActive ? '#fff' : 'var(--text-muted)';
+    b.style.fontWeight = isActive ? '600' : '400';
+  });
+  const isGpMode = STATE.procPriceMode === 'gradeprice';
+  const tonEl = $('pGpTon');
+  const rateEl = $('pGpRate');
+  const calcEl = $('pGpCalc');
+  if (tonEl) tonEl.style.display = isGpMode ? 'none' : '';
+  if (rateEl) {
+    rateEl.style.display = isGpMode ? '' : 'none';
+    if (isGpMode) $('p_raw_gp_rate').value = STATE.procGpRate;
+  }
+  if (calcEl) calcEl.style.display = isGpMode ? '' : 'none';
+}
+
+function setProcPriceMode(mode) {
+  STATE.procPriceMode = mode;
+  updateProcPriceModeUI();
+  recalcProcess();
+  saveState();
+}
+
+// ===== Tailings Price Mode Toggle =====
+function updateTailPriceModeUI() {
+  qsa('.tail-price-mode-btn').forEach(b => {
+    const isActive = b.dataset.tailpricemode === STATE.tailPriceMode;
+    b.style.background = isActive ? 'var(--primary)' : 'transparent';
+    b.style.color = isActive ? '#fff' : 'var(--text-muted)';
+    b.style.fontWeight = isActive ? '600' : '400';
+  });
+  const isGpMode = STATE.tailPriceMode === 'gradeprice';
+  const tonEl = $('pTailTon');
+  const rateEl = $('pTailGpRate');
+  const calcEl = $('pTailGpCalc');
+  if (tonEl) tonEl.style.display = isGpMode ? 'none' : '';
+  if (rateEl) {
+    rateEl.style.display = isGpMode ? '' : 'none';
+    if (isGpMode) $('p_tail_gp_rate').value = STATE.tailGpRate;
+  }
+  if (calcEl) calcEl.style.display = isGpMode ? '' : 'none';
+}
+
+function setTailPriceMode(mode) {
+  STATE.tailPriceMode = mode;
+  updateTailPriceModeUI();
+  recalcProcess();
+  saveState();
+}
+
+// ===== Export Currency Toggle =====
+function updateExpCurrUI() {
+  qsa('.exp-curr-btn').forEach(b => {
+    const isActive = b.dataset.expcurr === STATE.expCurr;
+    b.style.background = isActive ? 'var(--primary)' : 'transparent';
+    b.style.color = isActive ? '#fff' : 'var(--text-muted)';
+    b.style.fontWeight = isActive ? '600' : '400';
+  });
+  const isUsd = STATE.expCurr === 'usd';
+  const usdEl = $('gExpUsdPrice');
+  const rmbEl = $('gExpRmbPrice');
+  const rateEl = $('gExpRate');
+  if (usdEl) usdEl.style.display = isUsd ? '' : 'none';
+  if (rmbEl) rmbEl.style.display = isUsd ? 'none' : '';
+  if (rateEl) rateEl.style.display = isUsd ? '' : 'none';
+}
+
+function setExpCurr(curr) {
+  STATE.expCurr = curr;
+  updateExpCurrUI();
+  recalcTrade();
+  saveState();
+}
+
+// ===== Price Mode Toggle (元/吨 vs 元/品位) for Trading =====
+function updatePriceModeUI() {
+  qsa('.price-mode-btn').forEach(b => {
+    const isActive = b.dataset.pricemode === STATE.priceMode;
+    b.style.background = isActive ? 'var(--primary)' : 'transparent';
+    b.style.color = isActive ? '#fff' : 'var(--text-muted)';
+    b.style.fontWeight = isActive ? '600' : '400';
+  });
+  const isGpMode = STATE.priceMode === 'gradeprice';
+  // Toggle global 元/品位 rate input
+  const gGradeGpRate = $('gGradeGpRate');
+  if (gGradeGpRate) {
+    gGradeGpRate.style.display = isGpMode ? '' : 'none';
+    if (isGpMode) $('t_pur_gp_rate_global').value = STATE.purGpRate;
+  }
+  // Re-render grade rows to switch price editability
+  renderPurGradeRows();
+}
+
+function setPriceMode(mode) {
+  STATE.priceMode = mode;
+  updatePriceModeUI();
+  recalcTrade();
+  saveState();
+}
+
+function setTaxMode(mode) {
+  STATE.taxMode = mode;
+  updateTaxToggleUI();
+  recalcAll();
+  saveState();
+}
+
+// ===== Product Row Rendering =====
+function renderProductRows() {
+  const container = $('productRows');
+  let html = '';
+  STATE.products.forEach((p, i) => {
+    html += `
+      <div class="product-row" data-index="${i}">
+        <div class="form-group">
+          <label>${i === 0 ? '产品名称' : ''}</label>
+          <input type="text" class="prod-name" value="${p.name}" placeholder="产品名称">
+        </div>
+        <div class="form-group">
+          <label>${i === 0 ? '产率（%）' : ''}</label>
+          <input type="number" class="prod-yield" value="${p.yield}" min="0" max="100" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>${i === 0 ? '品位（%）' : ''}</label>
+          <input type="number" class="prod-grade" value="${p.grade}" min="0" max="100" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>${i === 0 ? '售价（元/吨）' : ''}</label>
+          <input type="number" class="prod-price" value="${p.price}" min="0" step="0.01">
+        </div>
+        <button class="btn-icon del" onclick="deleteProduct(${i})" title="删除">✕</button>
+      </div>`;
+  });
+  container.innerHTML = html;
+
+  // Bind events
+  container.querySelectorAll('.prod-name').forEach(el => el.addEventListener('input', syncProducts));
+  container.querySelectorAll('.prod-yield').forEach(el => el.addEventListener('input', syncProducts));
+  container.querySelectorAll('.prod-grade').forEach(el => el.addEventListener('input', syncProducts));
+  container.querySelectorAll('.prod-price').forEach(el => el.addEventListener('input', syncProducts));
+}
+
+function syncProducts() {
+  const container = $('productRows');
+  if (!container) return;
+  const rows = container.querySelectorAll('.product-row');
+  STATE.products = [];
+  rows.forEach(row => {
+    STATE.products.push({
+      name: row.querySelector('.prod-name')?.value || '未命名',
+      yield: parseFloat(row.querySelector('.prod-yield')?.value) || 0,
+      grade: parseFloat(row.querySelector('.prod-grade')?.value) || 0,
+      price: parseFloat(row.querySelector('.prod-price')?.value) || 0,
+    });
+  });
+  recalcProcess();
+  saveState();
+}
+
+// ===== Purchase Grade Rows (Trading) =====
+function renderPurGradeRows() {
+  const container = $('purchaseGradeRows');
+  if (!container) return;
+  const isGpMode = STATE.priceMode === 'gradeprice';
+  let html = '';
+  STATE.purGrades.forEach((p, i) => {
+    const calcPrice = isGpMode ? (STATE.purGpRate * p.grade) : p.price;
+    html += `
+      <div class="product-row" data-pgi="${i}">
+        <div class="form-group">
+          <label>${i === 0 ? '批次名称' : ''}</label>
+          <input type="text" class="pg-name" value="${p.name}" placeholder="如：97酸级粉">
+        </div>
+        <div class="form-group">
+          <label>${i === 0 ? '品位（%）' : ''}</label>
+          <input type="number" class="pg-grade" value="${p.grade}" min="0" max="100" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>${i === 0 ? '数量（吨）' : ''}</label>
+          <input type="number" class="pg-qty" value="${p.qty}" min="0" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>${i === 0 ? (isGpMode ? '单价-自动（元/吨）' : '单价（元/吨）') : ''}</label>
+          <input type="${isGpMode ? 'text' : 'number'}" class="pg-price" value="${fmt(calcPrice,0)}" min="0" step="0.01" ${isGpMode ? 'readonly' : ''}>
+        </div>
+        <button class="btn-icon del" onclick="deletePurGrade(${i})" title="删除">✕</button>
+      </div>`;
+  });
+  container.innerHTML = html;
+
+  container.querySelectorAll('.pg-name').forEach(el => el.addEventListener('input', syncPurGrades));
+  container.querySelectorAll('.pg-grade').forEach(el => el.addEventListener('input', syncPurGrades));
+  container.querySelectorAll('.pg-qty').forEach(el => el.addEventListener('input', syncPurGrades));
+  if (!isGpMode) {
+    container.querySelectorAll('.pg-price').forEach(el => el.addEventListener('input', syncPurGrades));
+  }
+}
+
+function syncPurGrades() {
+  const container = $('purchaseGradeRows');
+  if (!container) return;
+  const rows = container.querySelectorAll('.product-row');
+  const isGpMode = STATE.priceMode === 'gradeprice';
+  // In gradeprice mode, read the global rate
+  if (isGpMode) {
+    STATE.purGpRate = parseVal('t_pur_gp_rate_global');
+  }
+  STATE.purGrades = [];
+  rows.forEach(row => {
+    const grade = parseFloat(row.querySelector('.pg-grade')?.value) || 0;
+    STATE.purGrades.push({
+      name: row.querySelector('.pg-name')?.value || '未命名',
+      grade: grade,
+      qty: parseFloat(row.querySelector('.pg-qty')?.value) || 0,
+      price: isGpMode ? (STATE.purGpRate * grade) : (parseFloat(row.querySelector('.pg-price')?.value) || 0),
+    });
+  });
+  // Re-render in gradeprice mode so calculated prices update in the DOM
+  if (isGpMode) renderPurGradeRows();
+  recalcTrade();
+  saveState();
+}
+
+function addPurGrade() {
+  STATE.purGrades.push({ name: '', grade: 0, qty: 0, price: 0 });
+  renderPurGradeRows();
+  recalcTrade();
+  saveState();
+}
+
+function deletePurGrade(i) {
+  if (STATE.purGrades.length <= 1) return;
+  STATE.purGrades.splice(i, 1);
+  renderPurGradeRows();
+  recalcTrade();
+  saveState();
+}
+
+function addProduct() {
+  STATE.products.push({ name: '', yield: 0, grade: 0, price: 0 });
+  renderProductRows();
+  recalcProcess();
+  saveState();
+}
+
+function deleteProduct(i) {
+  if (STATE.products.length <= 1) return;
+  STATE.products.splice(i, 1);
+  renderProductRows();
+  recalcProcess();
+  saveState();
+}
+
+// ===== Processing Calculations =====
+function recalcProcess() {
+  const taxMode = STATE.taxMode;
+  const vat = STATE.vatRate;
+
+  // Read inputs
+  let rawQty = parseVal('p_raw_qty');
+  let rawGrade = parseVal('p_raw_grade');
+  let rawPrice;
+  if (STATE.procPriceMode === 'gradeprice') {
+    STATE.procGpRate = parseVal('p_raw_gp_rate');
+    rawPrice = STATE.procGpRate * rawGrade;
+    $('p_raw_gp_calc').value = fmtMoney(rawPrice);
+  } else {
+    rawPrice = parseVal('p_raw_price');
+  }
+  let waterFee = parseVal('p_water_fee');
+  let powerFee = parseVal('p_power_fee');
+  let otherCost = parseVal('p_other_cost');
+
+  if (rawQty <= 0) {
+    clearProcessResults();
+    return;
+  }
+
+  // --- Step 1: Compute yields and tailGrade first (needed for 元/品位 tailings pricing) ---
+  let productQtyTotal = 0, yieldSum = 0, weightedGrade = 0;
+  STATE.products.forEach(p => {
+    productQtyTotal += rawQty * p.yield / 100;
+    yieldSum += p.yield;
+    weightedGrade += p.yield * p.grade;
+  });
+  const tailYield = Math.max(0, 100 - yieldSum);
+  const tailQty = rawQty * tailYield / 100;
+  const tailGrade = tailYield > 0.001 ? Math.max(0, (rawGrade * 100 - weightedGrade) / tailYield) : 0;
+
+  // --- Step 2: Now compute tailPrice (depends on tailGrade in 元/品位 mode) ---
+  let tailPrice;
+  if (STATE.tailPriceMode === 'gradeprice') {
+    STATE.tailGpRate = parseVal('p_tail_gp_rate');
+    tailPrice = STATE.tailGpRate * tailGrade;
+    $('p_tail_gp_calc').value = fmtMoney(tailPrice);
+  } else {
+    tailPrice = parseVal('p_tail_price');
+  }
+
+  // --- Step 3: Tax conversion ---
+  let rawPriceIncl, rawPriceExcl, waterFeeIncl, waterFeeExcl, powerFeeIncl, powerFeeExcl, tailPriceIncl, tailPriceExcl;
+  if (taxMode === 'incl') {
+    rawPriceIncl = rawPrice;
+    rawPriceExcl = toExcl(rawPrice);
+    waterFeeIncl = waterFee;
+    waterFeeExcl = toExcl(waterFee);
+    powerFeeIncl = powerFee;
+    powerFeeExcl = toExcl(powerFee);
+    tailPriceIncl = tailPrice;
+    tailPriceExcl = toExcl(tailPrice);
+  } else {
+    rawPriceExcl = rawPrice;
+    rawPriceIncl = toIncl(rawPrice);
+    waterFeeExcl = waterFee;
+    waterFeeIncl = toIncl(waterFee);
+    powerFeeExcl = powerFee;
+    powerFeeIncl = toIncl(powerFee);
+    tailPriceExcl = tailPrice;
+    tailPriceIncl = toIncl(tailPrice);
+  }
+  let otherCostIncl = otherCost, otherCostExcl = otherCost;
+
+  // Convert product prices
+  const productsIncl = STATE.products.map(p => {
+    const priceIncl = taxMode === 'incl' ? p.price : toIncl(p.price);
+    const priceExcl = taxMode === 'incl' ? toExcl(p.price) : p.price;
+    return { ...p, priceIncl, priceExcl };
+  });
+
+  // --- Step 4: Revenue and profit ---
+  // === TAX-INCLUSIVE ===
+  const rawCostIncl = rawQty * rawPriceIncl;
+  const processPerTonIncl = waterFeeIncl + powerFeeIncl;
+  const processTotalIncl = rawQty * processPerTonIncl + otherCostIncl;
+  const totalCostIncl = rawCostIncl + processTotalIncl;
+
+  let productRevenueIncl = 0;
+  STATE.products.forEach((p, i) => {
+    productRevenueIncl += (rawQty * p.yield / 100) * productsIncl[i].priceIncl;
+  });
+  const tailRevenueIncl = tailQty * tailPriceIncl;
+
+  const totalRevenueIncl = productRevenueIncl + tailRevenueIncl;
+  const profitIncl = totalRevenueIncl - totalCostIncl;
+  const profitPerTonIncl = profitIncl / rawQty;
+  const profitMarginIncl = totalRevenueIncl > 0 ? (profitIncl / totalRevenueIncl * 100) : 0;
+
+  // === TAX-EXCLUSIVE calculation ===
+  const rawCostExcl = rawQty * rawPriceExcl;
+  const processPerTonExcl = waterFeeExcl + powerFeeExcl;
+  const processTotalExcl = rawQty * processPerTonExcl + otherCostExcl;
+  const totalCostExcl = rawCostExcl + processTotalExcl;
+
+  let productRevenueExcl = 0;
+  STATE.products.forEach((p, i) => {
+    productRevenueExcl += (rawQty * p.yield / 100) * productsIncl[i].priceExcl;
+  });
+  const tailRevenueExcl = tailQty * tailPriceExcl;
+  const totalRevenueExcl = productRevenueExcl + tailRevenueExcl;
+  const profitExcl = totalRevenueExcl - totalCostExcl;
+  const profitPerTonExcl = profitExcl / rawQty;
+  const profitMarginExcl = totalRevenueExcl > 0 ? (profitExcl / totalRevenueExcl * 100) : 0;
+
+  // === Update Readonly Fields ===
+  $('p_raw_cost').value = fmtMoney(rawCostIncl);
+  $('p_raw_cost2').value = fmtMoney(rawCostIncl);
+  $('p_process_per_ton').value = fmtMoney(processPerTonIncl);
+  $('p_process_total').value = fmtMoney(processTotalIncl);
+  $('p_total_cost').value = fmtMoney(totalCostIncl);
+  $('p_product_total_qty').value = fmt(productQtyTotal, 2) + ' 吨';
+  $('p_product_revenue').value = fmtMoney(productRevenueIncl);
+  $('p_tail_yield').value = fmt(tailYield, 1) + '%';
+  $('p_tail_qty').value = fmt(tailQty, 2) + ' 吨';
+  $('p_tail_grade').value = fmt(tailGrade, 1) + '%';
+  $('p_tail_revenue').value = fmtMoney(tailRevenueIncl);
+
+  // Yield warning & CaF2 mass balance
+  const caf2Input = rawQty * rawGrade / 100; // tons of CaF2 in raw ore
+  const caf2Output = weightedGrade * rawQty / 10000; // Σ(yield% × grade% × qty) / 10000
+  const recoveryRate = caf2Input > 0 ? (caf2Output / caf2Input * 100) : 0;
+
+  const warnEl = $('yieldWarning');
+  let warnings = [];
+  if (yieldSum > 100.01) {
+    warnings.push(`产率合计 ${fmt(yieldSum,1)}%，已超过 100%`);
+  }
+  if (recoveryRate > 100.01) {
+    warnings.push(`CaF₂回收率 ${fmt(recoveryRate,1)}%，超过 100%（输入品位或产率可能不合理）`);
+  }
+  if (tailGrade < 0) {
+    warnings.push(`尾矿品位为负，产品中的 CaF₂ 已超过原矿含量`);
+  }
+  warnEl.innerHTML = warnings.length > 0
+    ? warnings.map(w => `<span style="color:var(--loss);">⚠️ ${w}</span>`).join('<br>')
+    : (yieldSum > 0 ? `💡 CaF₂ 回收率 ${fmt(recoveryRate,1)}%` : '');
+
+  // === Profit Cards ===
+  setHtml('processProfitCards', `
+    <div class="profit-card ${profitIncl >= 0 ? 'positive' : 'negative'}">
+      <div class="label">含税总利润</div>
+      <div class="value">¥${fmtMoney(profitIncl)}</div>
+    </div>
+    <div class="profit-card ${profitExcl >= 0 ? 'positive' : 'negative'}">
+      <div class="label">不含税总利润</div>
+      <div class="value">¥${fmtMoney(profitExcl)}</div>
+    </div>
+    <div class="profit-card ${profitIncl >= 0 ? 'positive' : 'negative'}">
+      <div class="label">含税吨利润（元/吨原矿）</div>
+      <div class="value">¥${fmtMoney(profitPerTonIncl)}</div>
+    </div>
+    <div class="profit-card ${profitExcl >= 0 ? 'positive' : 'negative'}">
+      <div class="label">不含税吨利润（元/吨原矿）</div>
+      <div class="value">¥${fmtMoney(profitPerTonExcl)}</div>
+    </div>
+  `);
+
+  // VAT amounts
+  const inputVatIncl = (rawCostIncl - rawCostExcl) + (processTotalIncl - processTotalExcl);
+  const outputVatIncl = (productRevenueIncl - productRevenueExcl) + (tailRevenueIncl - tailRevenueExcl);
+  const netVatIncl = outputVatIncl - inputVatIncl;
+
+  setHtml('processDetails', `
+    <div class="detail-item"><div class="dl">含税总成本</div><div class="dv">¥${fmtMoney(totalCostIncl)}</div></div>
+    <div class="detail-item"><div class="dl">含税总收入</div><div class="dv">¥${fmtMoney(totalRevenueIncl)}</div></div>
+    <div class="detail-item"><div class="dl">含税利润率</div><div class="dv">${profitMarginIncl >= 0 ? '+' : ''}${fmt(profitMarginIncl,1)}%</div></div>
+    <div class="detail-item" style="background:#fffbeb;border:1px solid #fde68a;"><div class="dl">💰 进项税额</div><div class="dv">¥${fmtMoney(inputVatIncl)}</div></div>
+    <div class="detail-item" style="background:#fffbeb;border:1px solid #fde68a;"><div class="dl">💰 销项税额</div><div class="dv">¥${fmtMoney(outputVatIncl)}</div></div>
+    <div class="detail-item" style="background:#fffbeb;border:1px solid #fde68a;"><div class="dl">🧾 应纳增值税</div><div class="dv" style="color:${netVatIncl >= 0 ? 'var(--loss)' : 'var(--profit)'};">¥${fmtMoney(netVatIncl)}</div></div>
+    <div class="detail-item"><div class="dl">CaF₂ 回收率</div><div class="dv">${fmt(recoveryRate,1)}%</div></div>
+    <div class="detail-item"><div class="dl">产品总产量</div><div class="dv">${fmt(productQtyTotal,1)} 吨</div></div>
+    <div class="detail-item"><div class="dl">尾矿产量 / 品位</div><div class="dv">${fmt(tailQty,1)}吨 / ${fmt(tailGrade,1)}%</div></div>
+  `);
+}
+
+function clearProcessResults() {
+  ['p_raw_cost','p_raw_cost2','p_process_per_ton','p_process_total','p_total_cost',
+   'p_product_total_qty','p_product_revenue','p_tail_yield','p_tail_qty',
+   'p_tail_grade','p_tail_gp_calc','p_tail_revenue'].forEach(id => $(id).value = '—');
+  setHtml('processProfitCards', '<div style="color:var(--text-muted);padding:20px;text-align:center;">请输入原矿数量</div>');
+  setHtml('processDetails', '');
+  $('yieldWarning').innerHTML = '';
+}
+
+// ===== Trading Calculations =====
+function recalcTrade() {
+  const taxMode = STATE.taxMode;
+  const vat = STATE.vatRate;
+
+  // Aggregate from grade rows
+  if (STATE.priceMode === 'gradeprice') {
+    STATE.purGpRate = parseVal('t_pur_gp_rate_global');
+    // Refresh row prices when global rate changes
+    STATE.purGrades.forEach(g => { g.price = STATE.purGpRate * g.grade; });
+    renderPurGradeRows();
+  }
+  let totalQty = 0, totalCost = 0, gradeWeightedSum = 0;
+  STATE.purGrades.forEach(g => {
+    totalQty += g.qty;
+    totalCost += g.qty * g.price;
+    gradeWeightedSum += g.qty * g.grade;
+  });
+  let purQty = totalQty;
+  let purPrice = totalQty > 0 ? totalCost / totalQty : 0;
+  let purGrade = totalQty > 0 ? gradeWeightedSum / totalQty : 0;
+  // Update readonly fields
+  $('t_pur_total_qty').value = fmt(totalQty, 1) + ' 吨';
+  $('t_pur_avg_grade').value = fmt(purGrade, 1) + '%';
+
+  // Fees — all per-ton rates × purQty
+  let transportRate = parseVal('t_transport');
+  let storageRate = parseVal('t_storage');
+  let customsRate = parseVal('t_customs');
+  let portRate = parseVal('t_port');
+  let otherRate = parseVal('t_other');
+  const feesPerTon = transportRate + storageRate + customsRate + portRate + otherRate;
+
+  let domQty = parseVal('t_dom_qty');
+  let domPrice = parseVal('t_dom_price');
+  let expQty = parseVal('t_exp_qty');
+  let expRate = parseVal('t_exp_rate');
+  let rebateRate = parseVal('t_rebate_rate') / 100;
+
+  if (purQty <= 0) {
+    clearTradeResults();
+    return;
+  }
+
+  const feesIncl = feesPerTon * purQty;
+  $('t_cost_per_ton').value = fmtMoney(feesPerTon);
+  $('t_cost_total').value = fmtMoney(feesIncl);
+
+  // Convert based on tax mode
+  let purPriceIncl, purPriceExcl, domPriceIncl, domPriceExcl;
+  if (taxMode === 'incl') {
+    purPriceIncl = purPrice;
+    purPriceExcl = toExcl(purPrice);
+    domPriceIncl = domPrice;
+    domPriceExcl = toExcl(domPrice);
+  } else {
+    purPriceExcl = purPrice;
+    purPriceIncl = toIncl(purPrice);
+    domPriceExcl = domPrice;
+    domPriceIncl = toIncl(domPrice);
+  }
+
+  // Quantity check
+  const totalSalesQty = domQty + expQty;
+  const qtyWarn = $('qtyWarning');
+  if (totalSalesQty > purQty + 0.001) {
+    qtyWarn.textContent = `⚠️ 内销+外销数量(${fmt(totalSalesQty,1)}吨) 超过采购数量(${fmt(purQty,1)}吨)，请检查！`;
+  } else if (totalSalesQty < purQty - 0.001) {
+    qtyWarn.textContent = `💡 尚有 ${fmt(purQty - totalSalesQty, 1)} 吨未售出（库存）`;
+  } else {
+    qtyWarn.textContent = '';
+  }
+
+  // === TAX-INCLUSIVE ===
+  const purCostIncl = purQty * purPriceIncl;
+  const totalCostIncl = purCostIncl + feesIncl;
+
+  const domRevIncl = domQty * domPriceIncl;
+  // Export revenue: USD mode = qty × USD_price × rate; RMB mode = qty × RMB_price
+  let expFobRmb;
+  if (STATE.expCurr === 'rmb') {
+    expFobRmb = expQty * parseVal('t_exp_price_rmb');
+  } else {
+    expFobRmb = expQty * parseVal('t_exp_price_usd') * expRate;
+  }
+  // Export rebate = 不含税采购成本 × (出口比例) × 退税率  (进项税退还)
+  const exportRatio = purQty > 0 ? (expQty / purQty) : 0;
+  const purCostExcl = purQty * purPriceExcl;
+  const rebate = purCostExcl * exportRatio * rebateRate;
+  const totalRevIncl = domRevIncl + expFobRmb + rebate;
+  const profitIncl = totalRevIncl - totalCostIncl;
+  const profitPerTonIncl = profitIncl / purQty;
+  const marginIncl = totalRevIncl > 0 ? (profitIncl / totalRevIncl * 100) : 0;
+
+  // === TAX-EXCLUSIVE ===
+  const totalCostExcl = purCostExcl + feesIncl;
+  const domRevExcl = domQty * domPriceExcl;
+  const totalRevExcl = domRevExcl + expFobRmb + rebate;
+  const profitExcl = totalRevExcl - totalCostExcl;
+  const profitPerTonExcl = profitExcl / purQty;
+  const marginExcl = totalRevExcl > 0 ? (profitExcl / totalRevExcl * 100) : 0;
+
+  // === Update UI ===
+  $('t_pur_total').value = fmtMoney(purCostIncl);
+  $('t_dom_revenue').value = fmtMoney(domRevIncl);
+  $('t_exp_revenue').value = fmtMoney(expFobRmb);
+  $('t_rebate').value = fmtMoney(rebate);
+  $('t_total_revenue').value = fmtMoney(totalRevIncl);
+
+  setHtml('tradeProfitCards', `
+    <div class="profit-card ${profitIncl >= 0 ? 'positive' : 'negative'}">
+      <div class="label">含税总利润</div>
+      <div class="value">¥${fmtMoney(profitIncl)}</div>
+    </div>
+    <div class="profit-card ${profitExcl >= 0 ? 'positive' : 'negative'}">
+      <div class="label">不含税总利润</div>
+      <div class="value">¥${fmtMoney(profitExcl)}</div>
+    </div>
+    <div class="profit-card ${profitIncl >= 0 ? 'positive' : 'negative'}">
+      <div class="label">含税吨利润（元/吨采购）</div>
+      <div class="value">¥${fmtMoney(profitPerTonIncl)}</div>
+    </div>
+    <div class="profit-card ${profitExcl >= 0 ? 'positive' : 'negative'}">
+      <div class="label">不含税吨利润（元/吨采购）</div>
+      <div class="value">¥${fmtMoney(profitPerTonExcl)}</div>
+    </div>
+  `);
+
+  // VAT amounts for trading
+  const tradeInputVat = purCostIncl - purCostExcl;
+  const tradeOutputVat = domRevIncl - domRevExcl; // only domestic sales have VAT; export: zero-rated, 销项税=0
+  const tradeNetVat = tradeOutputVat - tradeInputVat;
+
+  setHtml('tradeDetails', `
+    <div class="detail-item"><div class="dl">含税采购成本</div><div class="dv">¥${fmtMoney(purCostIncl)}</div></div>
+    <div class="detail-item"><div class="dl">吨费用合计 / 费用总计</div><div class="dv">¥${fmtMoney(feesPerTon)}/吨 · ¥${fmtMoney(feesIncl)}</div></div>
+    <div class="detail-item"><div class="dl">内销收入</div><div class="dv">¥${fmtMoney(domRevIncl)}</div></div>
+    <div class="detail-item"><div class="dl">外销收入(RMB)</div><div class="dv">¥${fmtMoney(expFobRmb)}</div></div>
+    <div class="detail-item"><div class="dl">出口退税（进项退还）</div><div class="dv">¥${fmtMoney(rebate)} <span style="font-size:.7rem;color:var(--text-muted);">=${fmt(exportRatio*100,1)}%×不含税采购×${fmt(rebateRate*100,1)}%</span></div></div>
+    <div class="detail-item" style="background:#fffbeb;border:1px solid #fde68a;"><div class="dl">💰 进项税额</div><div class="dv">¥${fmtMoney(tradeInputVat)}</div></div>
+    <div class="detail-item" style="background:#fffbeb;border:1px solid #fde68a;"><div class="dl">💰 销项税额（内销部分）</div><div class="dv">¥${fmtMoney(tradeOutputVat)}</div></div>
+    <div class="detail-item" style="background:#fffbeb;border:1px solid #fde68a;"><div class="dl">🧾 应纳增值税</div><div class="dv" style="color:${tradeNetVat >= 0 ? 'var(--loss)' : 'var(--profit)'};">¥${fmtMoney(tradeNetVat)}</div></div>
+    <div class="detail-item"><div class="dl">含税利润率</div><div class="dv">${marginIncl >= 0 ? '+' : ''}${fmt(marginIncl,1)}%</div></div>
+  `);
+}
+
+function clearTradeResults() {
+  ['t_pur_total','t_cost_per_ton','t_cost_total','t_dom_revenue','t_exp_revenue','t_rebate','t_total_revenue']
+    .forEach(id => $(id).value = '—');
+  setHtml('tradeProfitCards', '<div style="color:var(--text-muted);padding:20px;text-align:center;">请输入采购数量</div>');
+  setHtml('tradeDetails', '');
+  $('qtyWarning').textContent = '';
+}
+
+// ===== Master Recalc =====
+function recalcAll() {
+  recalcProcess();
+  recalcTrade();
+}
+
+// ===== Bind Input Events =====
+function bindAllInputs() {
+  // Processing inputs
+  ['p_raw_qty','p_raw_price','p_raw_grade','p_raw_gp_rate','p_water_fee','p_power_fee','p_other_cost','p_tail_price','p_tail_gp_rate'].forEach(id => {
+    $(id).addEventListener('input', () => { recalcProcess(); saveState(); });
+  });
+  // Trading inputs
+  ['t_pur_gp_rate_global','t_transport','t_storage','t_customs','t_port','t_other',
+   't_dom_qty','t_dom_price','t_exp_qty','t_exp_price_usd','t_exp_price_rmb','t_exp_rate','t_rebate_rate'].forEach(id => {
+    $(id).addEventListener('input', () => { recalcTrade(); saveState(); });
+  });
+  // VAT rate
+  $('vatRate').addEventListener('input', () => {
+    STATE.vatRate = parseVal('vatRate') / 100;
+    recalcAll();
+    saveState();
+  });
+}
+
+// ===== Init =====
+function init() {
+  loadState();
+  $('vatRate').value = Math.round(STATE.vatRate * 100);
+  updateTaxToggleUI();
+  updatePriceModeUI();
+  updateProcPriceModeUI();
+  updateExpCurrUI();
+  updateTailPriceModeUI();
+  renderProductRows();
+  renderPurGradeRows();
+
+  // Tab switching
+  qsa('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.module));
+  });
+
+  // Tax toggle
+  qsa('#taxToggle button').forEach(btn => {
+    btn.addEventListener('click', () => setTaxMode(btn.dataset.mode));
+  });
+
+  // Add product button
+  $('btnAddProduct').addEventListener('click', addProduct);
+
+  // Price mode toggle buttons (trading)
+  qsa('.price-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => setPriceMode(btn.dataset.pricemode));
+  });
+
+  // Price mode toggle buttons (processing - raw ore)
+  qsa('.proc-price-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => setProcPriceMode(btn.dataset.procpricemode));
+  });
+
+  // Price mode toggle buttons (processing - tailings)
+  qsa('.tail-price-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => setTailPriceMode(btn.dataset.tailpricemode));
+  });
+
+  // Export currency toggle buttons
+  qsa('.exp-curr-btn').forEach(btn => {
+    btn.addEventListener('click', () => setExpCurr(btn.dataset.expcurr));
+  });
+
+  // Add purchase grade button
+  const btnAddPurGrade = $('btnAddPurGrade');
+  if (btnAddPurGrade) btnAddPurGrade.addEventListener('click', addPurGrade);
+
+  // Expose functions globally for inline onclick
+  window.deleteProduct = deleteProduct;
+  window.deletePurGrade = deletePurGrade;
+
+  bindAllInputs();
+  recalcAll();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
